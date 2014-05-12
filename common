@@ -1,0 +1,5 @@
+TAG=${TAG:-_wls}
+NUMJOBS=${NUMJOBS:--j1}
+WRK=${WRK:-/tmp/wlsbuild}
+OUTPUT=${OUTPUT:-/tmp}
+DOCS="AUTHORS COPY* README TODO ChangeLog"

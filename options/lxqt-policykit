@@ -1,0 +1,1 @@
+OPT="-DPolkitQt-1_DIR:PATH=/usr/lib${LIBDIRSUFFIX}/cmake/PolkitQt-1/"

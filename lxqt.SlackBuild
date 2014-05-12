@@ -1,0 +1,184 @@
+#!/bin/sh
+
+# Slackware modular build script for lxqt
+
+# Copyright 2014 Widya Walesa <walecha99@gmail.com>
+# All rights reserved.
+#
+# Redistribution and use of this script, with or without modification, is
+# permitted provided that the following conditions are met:
+#
+# 1. Redistributions of this script must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR ''AS IS'' AND ANY EXPRESS OR IMPLIED
+# WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
+# EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+# OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+# WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+# OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+# ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. FURTHERMORE I AM NOT LIABLE IF
+# YOUR DATA IS DESTROYED, YOUR HOUSE BURNS DOWN OR YOUR DOG RUNS OFF.
+
+CWD=$(pwd);
+. ./common;
+
+for L in `cat ./list`; do
+  PRGNAM="$L";
+  VERSION=$(basename $CWD/src/$L-*.tar.gz | rev | cut -d . -f 3- | cut -d - -f 1 | rev)
+  BUILD=$(cat ./build/$L);
+  PKG=$WRK/package-$PRGNAM
+
+  if [ -z "$ARCH" ]; then
+    case "$( uname -m )" in
+      i?86) ARCH=i486 ;;
+      arm*) ARCH=arm ;;
+	*) ARCH=$( uname -m ) ;;
+    esac
+  fi;
+
+  if [ "$ARCH" = "i486" ]; then
+    SLKCFLAGS="-O2 -pipe -march=i486 -mtune=i686 -pthread"
+    LIBDIRSUFFIX=""
+  elif [ "$ARCH" = "i686" ]; then
+    SLKCFLAGS="-O2 -pipe -march=i686 -mtune=i686 -pthread"
+    LIBDIRSUFFIX=""
+  elif [ "$ARCH" = "x86_64" ]; then
+    SLKCFLAGS="-O2 -m64 -pipe -fPIC -pthread"
+    LIBDIRSUFFIX="64"
+  else
+    SLKCFLAGS="-O2 -pthread"
+    LIBDIRSUFFIX=""
+  fi;
+
+  echo "#######################################################################"
+  echo "#"
+  echo "# Building package: $PRGNAM-$VERSION-$ARCH-$BUILD$TAG.txz "
+  echo "#"
+  echo "#######################################################################"
+
+  rm -rf $PKG;
+  mkdir -p $WRK $PKG $OUTPUT;
+  cd $WRK;
+  rm -rf $PRGNAM-$VERSION;
+  tar xvf $CWD/src/$PRGNAM-$VERSION.tar.gz || exit 1;
+  cd $PRGNAM-$VERSION;
+
+  if [ -f $CWD/patches/$L ]; then
+    cat $CWD/patches/$L | patch -p1;
+  fi;
+
+  chown -R root:root .;
+  find . \
+  \( -perm 777 -o -perm 775 -o -perm 711 -o -perm 555 -o -perm 511 \) \
+  -exec chmod 755 {} \; -o \
+  \( -perm 666 -o -perm 664 -o -perm 600 -o -perm 444 -o -perm 440 -o -perm 400 \) \
+  -exec chmod 644 {} \;
+
+  if [ -f $CWD/options/$L ]; then
+    . $CWD/options/$L;
+  fi;
+
+  if [ -f ./Makefile ]; then
+      make || exit 1;
+      make install DESTDIR=$PKG || exit 1;
+  elif [ -f ./CMakeLists.txt ]; then
+    mkdir -p build;
+    cd build;
+      cmake .. \
+	-DCMAKE_C_FLAGS:STRING="$SLKCFLAGS" \
+	-DCMAKE_CXX_FLAGS:STRING="$SLKCFLAGS" \
+	-DCMAKE_BUILD_TYPE=Release \
+	-DCMAKE_INSTALL_PREFIX:PATH=/usr \
+	-DLIB_SUFFIX=${LIBDIRSUFFIX} \
+	$OPT \
+
+      make || exit 1;
+      make install DESTDIR=$PKG || exit 1;
+    cd -;
+  elif [ -f ./autogen.sh ]; then
+    CFLAGS="$SLKCFLAGS" \
+    CXXFLAGS="$SLKCFLAGS" \
+    ./autogen.sh \
+      --build=$ARCH-slackware-linux --host=$ARCH-slackware-linux \
+      --program-prefix= --program-suffix= \
+      --prefix=/usr --exec-prefix=/usr \
+      --bindir=/usr/bin --sbindir=/usr/sbin \
+      --libdir=/usr/lib$LIBDIRSUFFIX --includedir=/usr/include \
+      --mandir=/usr/man --infodir=/usr/info \
+      --sysconfdir=/etc --docdir=/usr/doc/$PRGNAM-$VERSION \
+      --localstatedir=/var --sharedstatedir=/var/lib \
+      $OPT \
+
+      make || exit 1;
+      make install DESTDIR=$PKG || exit 1;
+  elif [ -f ./configure ]; then
+    CFLAGS="$SLKCFLAGS" \
+    CXXFLAGS="$SLKCFLAGS" \
+    ./configure \
+      --build=$ARCH-slackware-linux --host=$ARCH-slackware-linux \
+      --program-prefix= --program-suffix= \
+      --prefix=/usr --exec-prefix=/usr \
+      --bindir=/usr/bin --sbindir=/usr/sbin \
+      --libdir=/usr/lib$LIBDIRSUFFIX --includedir=/usr/include \
+      --mandir=/usr/man --infodir=/usr/info \
+      --sysconfdir=/etc --docdir=/usr/doc/$PRGNAM-$VERSION \
+      --localstatedir=/var --sharedstatedir=/var/lib \
+      $OPT \
+
+      make || exit 1;
+      make install DESTDIR=$PKG || exit 1;
+  fi;
+
+  find $PKG | xargs file | grep -e "executable" -e "shared object" | grep ELF \
+    | cut -f 1 -d : | xargs strip --strip-unneeded 2> /dev/null || true;
+
+  if [ -d $PKG/usr/share/man ]; then
+    mv $PKG/usr/share/man $PKG/usr/;
+  fi;
+  find $PKG/usr/man -type f -exec gzip -9 {} \;
+  for i in $( find $PKG/usr/man -type l ) ; do
+    ln -s $( readlink $i ).gz $i.gz ; rm $i ;
+  done;
+
+  # XDG_DIR = /etc/lxqt/xdg
+  #if [ "$PRGNAM" = "lxqt-session" ]; then
+    #mkdir -p $PKG/etc/profile.d/;
+    #cat $CWD/profile.d/lxqt.sh > $PKG/etc/profile.d/lxqt.sh;
+    #cat $CWD/profile.d/lxqt.csh > $PKG/etc/profile.d/lxqt.csh;
+    #chmod 755 $PKG/profile.d/lxqt.*;
+  #fi;
+
+  mkdir -p $PKG/usr/doc/$PRGNAM-$VERSION;
+  for D in $DOCS; do
+    if [ -f $D ]; then
+      cp -a $D $PKG/usr/doc/$PRGNAM-$VERSION;
+    fi ;
+  done;
+
+  mkdir -p $PKG/install;
+  cat $CWD/slack-desc/$L > $PKG/install/slack-desc;
+  if [ -f $CWD/slack-required/$L ]; then
+    cat $CWD/slack-required/$L > $PKG/install/slack-required;
+  fi;
+  if [ -f $CWD/doinst/$L ]; then
+    cat $CWD/doinst/$L > $PKG/install/doinst.sh;
+  fi;
+
+  cd $PKG;
+  /sbin/makepkg -p -l y -c n $OUTPUT/$PRGNAM-$VERSION-$ARCH-$BUILD$TAG.txz;
+#   ( cd $OUTPUT;
+#     /bin/md5sum $PRGNAM-$VERSION-$ARCH-$BUILD$TAG.txz > $PRGNAM-$VERSION-$ARCH-$BUILD$TAG.txz.md5;
+#   );
+  /sbin/upgradepkg --install-new --reinstall $OUTPUT/$PRGNAM-$VERSION-$ARCH-$BUILD$TAG.txz;
+
+  echo "Cleaning up build directory";
+  cd $WRK; rm -rf $PRGNAM-$VERSION $PKG;
+  unset OPT;
+  sleep 2;
+  echo;
+  cd $CWD;
+done;
