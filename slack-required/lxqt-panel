@@ -3,3 +3,6 @@ liblxqt-mount
 libstatgrab
 libsysstat
 lxqt-globalkeys
+qtmimetypes
+pulseaudio
+menu-cache

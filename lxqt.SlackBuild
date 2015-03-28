@@ -2,7 +2,7 @@
 
 # Slackware modular build script for lxqt
 
-# Copyright 2014 Widya Walesa <walecha99@gmail.com>
+# Copyright 2014-2015  Widya Walesa <walecha99@gmail.com>
 # All rights reserved.
 #
 # Redistribution and use of this script, with or without modification, is
@@ -26,10 +26,27 @@
 CWD=$(pwd);
 . ./common;
 
+failed()
+{
+  echo "+=================================================+"
+  echo "+ Build failed at $PRGNAM                         +"
+  echo "+=================================================+"
+  exit 1
+}
+
 for L in `cat ./list`; do
   PRGNAM="$L";
-  VERSION=$(basename $CWD/src/$L-*.tar.gz | rev | cut -d . -f 3- | cut -d - -f 1 | rev)
-  BUILD=$(cat ./build/$L);
+  if [ "$PRGNAM" = "libfm-extra" ]; then
+    SRCNAM="libfm"
+  else
+    SRCNAM="$L"
+  fi
+  VERSION=$(basename $CWD/src/$SRCNAM-*.tar.?z* | rev | cut -d . -f 3- | cut -d - -f 1 | rev)
+  if [ -r ./build/$PRGNAM ]; then
+    BUILD=$(cat ./build/$PRGNAM);
+  else
+    BUILD="1"
+  fi
   PKG=$WRK/package-$PRGNAM
 
   if [ -z "$ARCH" ]; then
@@ -63,9 +80,9 @@ for L in `cat ./list`; do
   rm -rf $PKG;
   mkdir -p $WRK $PKG $OUTPUT;
   cd $WRK;
-  rm -rf $PRGNAM-$VERSION;
-  tar xvf $CWD/src/$PRGNAM-$VERSION.tar.gz || exit 1;
-  cd $PRGNAM-$VERSION;
+  rm -rf $SRCNAM-$VERSION;
+  tar xvf $CWD/src/$SRCNAM-$VERSION.tar.?z* || failed;
+  cd $SRCNAM-$VERSION;
 
   if [ -f $CWD/patches/$L ]; then
     cat $CWD/patches/$L | patch -p1;
@@ -79,42 +96,28 @@ for L in `cat ./list`; do
   -exec chmod 644 {} \;
 
   if [ -f $CWD/options/$L ]; then
+    unset OPT;
     . $CWD/options/$L;
   fi;
 
   if [ -f ./Makefile ]; then
-      make || exit 1;
-      make install DESTDIR=$PKG || exit 1;
+      make || failed;
+      make install DESTDIR=$PKG || failed;
   elif [ -f ./CMakeLists.txt ]; then
     mkdir -p build;
     cd build;
       cmake .. \
-	-DCMAKE_C_FLAGS:STRING="$SLKCFLAGS" \
-	-DCMAKE_CXX_FLAGS:STRING="$SLKCFLAGS" \
-	-DCMAKE_BUILD_TYPE=Release \
-	-DCMAKE_INSTALL_PREFIX:PATH=/usr \
-	-DLIB_SUFFIX=${LIBDIRSUFFIX} \
-	$OPT \
-
-      make || exit 1;
-      make install DESTDIR=$PKG || exit 1;
-    cd -;
-  elif [ -f ./autogen.sh ]; then
-    CFLAGS="$SLKCFLAGS" \
-    CXXFLAGS="$SLKCFLAGS" \
-    ./autogen.sh \
-      --build=$ARCH-slackware-linux --host=$ARCH-slackware-linux \
-      --program-prefix= --program-suffix= \
-      --prefix=/usr --exec-prefix=/usr \
-      --bindir=/usr/bin --sbindir=/usr/sbin \
-      --libdir=/usr/lib$LIBDIRSUFFIX --includedir=/usr/include \
-      --mandir=/usr/man --infodir=/usr/info \
-      --sysconfdir=/etc --docdir=/usr/doc/$PRGNAM-$VERSION \
-      --localstatedir=/var --sharedstatedir=/var/lib \
+      -DCMAKE_C_FLAGS:STRING="$SLKCFLAGS" \
+      -DCMAKE_CXX_FLAGS:STRING="$SLKCFLAGS" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX:PATH=/usr \
+      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
       $OPT \
+      || failed
 
-      make || exit 1;
-      make install DESTDIR=$PKG || exit 1;
+      make || failed;
+      make install DESTDIR=$PKG || failed;
+    cd -;
   elif [ -f ./configure ]; then
     CFLAGS="$SLKCFLAGS" \
     CXXFLAGS="$SLKCFLAGS" \
@@ -128,9 +131,29 @@ for L in `cat ./list`; do
       --sysconfdir=/etc --docdir=/usr/doc/$PRGNAM-$VERSION \
       --localstatedir=/var --sharedstatedir=/var/lib \
       $OPT \
+      || failed
 
-      make || exit 1;
-      make install DESTDIR=$PKG || exit 1;
+      make || failed;
+      make install DESTDIR=$PKG || failed;
+  elif [ -f ./autogen.sh ]; then
+    ./autogen.sh || failed
+
+    CFLAGS="$SLKCFLAGS" \
+    CXXFLAGS="$SLKCFLAGS" \
+    ./configure \
+      --build=$ARCH-slackware-linux --host=$ARCH-slackware-linux \
+      --program-prefix= --program-suffix= \
+      --prefix=/usr --exec-prefix=/usr \
+      --bindir=/usr/bin --sbindir=/usr/sbin \
+      --libdir=/usr/lib$LIBDIRSUFFIX --includedir=/usr/include \
+      --mandir=/usr/man --infodir=/usr/info \
+      --sysconfdir=/etc --docdir=/usr/doc/$PRGNAM-$VERSION \
+      --localstatedir=/var --sharedstatedir=/var/lib \
+      $OPT \
+      || failed
+
+      make || failed;
+      make install DESTDIR=$PKG || failed;
   fi;
 
   find $PKG | xargs file | grep -e "executable" -e "shared object" | grep ELF \
@@ -145,12 +168,15 @@ for L in `cat ./list`; do
   done;
 
   # XDG_DIR = /etc/lxqt/xdg
-  #if [ "$PRGNAM" = "lxqt-session" ]; then
+  if [ "$PRGNAM" = "lxqt-session" ]; then
     #mkdir -p $PKG/etc/profile.d/;
     #cat $CWD/profile.d/lxqt.sh > $PKG/etc/profile.d/lxqt.sh;
     #cat $CWD/profile.d/lxqt.csh > $PKG/etc/profile.d/lxqt.csh;
     #chmod 755 $PKG/profile.d/lxqt.*;
-  #fi;
+    mkdir -p $PKG/etc/X11/xinit/;
+    cat $CWD/xinitrc.lxqt > $PKG/etc/X11/xinit/xinitrc.lxqt;
+    chmod 755 $PKG/etc/X11/xinit/xinitrc.lxqt;
+  fi;
 
   mkdir -p $PKG/usr/doc/$PRGNAM-$VERSION;
   for D in $DOCS; do
@@ -169,14 +195,14 @@ for L in `cat ./list`; do
   fi;
 
   cd $PKG;
-  /sbin/makepkg -p -l y -c n $OUTPUT/$PRGNAM-$VERSION-$ARCH-$BUILD$TAG.txz;
+  /sbin/makepkg -p -l y -c n $OUTPUT/$PRGNAM-$VERSION-$ARCH-$BUILD$TAG.txz || failed;
 #   ( cd $OUTPUT;
 #     /bin/md5sum $PRGNAM-$VERSION-$ARCH-$BUILD$TAG.txz > $PRGNAM-$VERSION-$ARCH-$BUILD$TAG.txz.md5;
 #   );
-  /sbin/upgradepkg --install-new --reinstall $OUTPUT/$PRGNAM-$VERSION-$ARCH-$BUILD$TAG.txz;
+  /sbin/upgradepkg --install-new --reinstall $OUTPUT/$PRGNAM-$VERSION-$ARCH-$BUILD$TAG.txz || failed;
 
   echo "Cleaning up build directory";
-  cd $WRK; rm -rf $PRGNAM-$VERSION $PKG;
+  cd $WRK; rm -rf $SRCNAM-$VERSION $PKG;
   unset OPT;
   sleep 2;
   echo;

@@ -1,4 +1,8 @@
-libfm
-libstatgrab
-menu-cache
+compton
 libconfig
+liboobs
+libstatgrab
+lxappearance
+openbox
+qtmimetypes
+system-tools-backends
