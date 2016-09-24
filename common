@@ -1,5 +1,5 @@
 TAG=${TAG:-_wls}
-NUMJOBS=${NUMJOBS:--j1}
+NUMJOBS=${NUMJOBS:--j3}
 WRK=${WRK:-/tmp/wlsbuild}
-OUTPUT=${OUTPUT:-/tmp}
+OUTPUT=${OUTPUT:-/home/ftp/pkg/lxqt}
 DOCS="AUTHORS COPY* README TODO ChangeLog"

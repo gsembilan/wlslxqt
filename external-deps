@@ -1,8 +1,21 @@
-compton
-libconfig
-liboobs
+## SBo
+libxkbcommon
 libstatgrab
-lxappearance
+lxmenu-data
+libfm-extra
+menu-cache
+libfm
+# IF NOt USING KWIN
 openbox
-qtmimetypes
+
+## ALIEN KDE5
+qt5
+kwindowsystem
+solid
+libdbusmenu-qt5
+polkit-qt5
+libkscreen2
+
+## WLSGNOME
 system-tools-backends
+liboobs
