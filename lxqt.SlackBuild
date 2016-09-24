@@ -2,7 +2,7 @@
 
 # Slackware modular build script for lxqt
 
-# Copyright 2014-2015  Widya Walesa <walecha99@gmail.com>
+# Copyright 2014-2016  Widya Walesa <walecha99@gmail.com>
 # All rights reserved.
 #
 # Redistribution and use of this script, with or without modification, is
@@ -34,19 +34,32 @@ failed()
   exit 1
 }
 
-for L in `cat ./list`; do
+for L in `cat ./list | sed '/#/d'`; do
   PRGNAM="$L";
   if [ "$PRGNAM" = "libfm-extra" ]; then
     SRCNAM="libfm"
   else
     SRCNAM="$L"
   fi
-  VERSION=$(basename $CWD/src/$SRCNAM-*.tar.?z* | rev | cut -d . -f 3- | cut -d - -f 1 | rev)
+  
+  if cat $CWD/CHECKSUMS | grep "$SRCNAM" >/dev/null; then
+    SHA256=$(cat $CWD/CHECKSUMS | grep "$SRCNAM" | grep "tar.xz" | grep SHA256 | awk '{print $4}')
+    VERSION=$(cat $CWD/CHECKSUMS | grep "$SRCNAM" | grep "tar.xz" | grep SHA256 | awk '{print $2}' | rev | cut -d - -f 1 | cut -d . -f 3- | rev)
+    REPO_URL="https://downloads.lxqt.org/lxqt"
+  elif cat $CWD/DEPS_CHECKSUMS | grep "$SRCNAM" >/dev/null; then
+    SHA256=$(cat $CWD/DEPS_CHECKSUMS | grep "$SRCNAM" | awk '{print $4}')
+    VERSION=$(cat $CWD/DEPS_CHECKSUMS | grep "$SRCNAM" | awk '{print $2}' | rev | cut -d - -f 1 | cut -d . -f 3- | rev)
+    REPO_URL="https://github.com/lxde/$SRCNAM/releases/download"
+  else
+    failed
+  fi
+  
   if [ -r ./build/$PRGNAM ]; then
     BUILD=$(cat ./build/$PRGNAM);
   else
     BUILD="1"
   fi
+  
   PKG=$WRK/package-$PRGNAM
 
   if [ -z "$ARCH" ]; then
@@ -77,11 +90,28 @@ for L in `cat ./list`; do
   echo "#"
   echo "#######################################################################"
 
+  if [ ! -e $CWD/src/$SRCNAM-$VERSION.tar.xz ]; then
+    ( cd $CWD/src;
+      rm -f $SRCNAM-$VERSION.tar.*
+      curl -#OLJ -C - $REPO_URL/$VERSION/$SRCNAM-$VERSION.tar.xz || failed
+    )
+  fi
+  
+  if [ -e $CWD/src/$SRCNAM-$VERSION.tar.xz ]; then
+    SHA256=`cat $CWD/CHECKSUMS | grep ".tar.xz" | grep "$SRNAM" | grep SHA256`
+    ( cd $CWD/src;
+      STATUS="$(echo '$SHA256') | sha256sum -c | awk '{print $2}';"
+      if [ ! "$STATUS" = "OK" ]; then
+        failed
+      fi;
+    )
+  fi
+  
   rm -rf $PKG;
   mkdir -p $WRK $PKG $OUTPUT;
   cd $WRK;
   rm -rf $SRCNAM-$VERSION;
-  tar xvf $CWD/src/$SRCNAM-$VERSION.tar.?z* || failed;
+  tar xvf $CWD/src/$SRCNAM-$VERSION.tar.xz || failed;
   cd $SRCNAM-$VERSION;
 
   if [ -f $CWD/patches/$L ]; then
