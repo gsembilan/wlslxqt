@@ -5,15 +5,15 @@
 # make exactly 11 lines for the formatting to be correct.  It's also
 # customary to leave one space after the ':'.
 
-             |-----handy-ruler------------------------------------------------------|
-liblxqt-mount: liblxqt-mount
-liblxqt-mount:
-liblxqt-mount: Library used to manage removable devices.
-liblxqt-mount:
-liblxqt-mount: URL: http://lxqt.org/
-liblxqt-mount:
-liblxqt-mount:
-liblxqt-mount:
-liblxqt-mount:
-liblxqt-mount:
-liblxqt-mount:
+         |-----handy-ruler------------------------------------------------------|
+lxqt-sudo: lxqt-sudo
+lxqt-sudo:
+lxqt-sudo: LXQt GUI for sudo.
+lxqt-sudo:
+lxqt-sudo: URL: http://lxqt.org/
+lxqt-sudo:
+lxqt-sudo:
+lxqt-sudo:
+lxqt-sudo:
+lxqt-sudo:
+lxqt-sudo:

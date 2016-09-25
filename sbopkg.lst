@@ -1,3 +1,4 @@
+muParser
 libconfig
 compton
 libstatgrab
@@ -6,4 +7,3 @@ libfm-extra
 menu-cache
 libfm
 openbox
-muParser
