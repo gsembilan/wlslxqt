@@ -186,18 +186,21 @@ lxqt_build() {
 }
 
 # SBo packages dependency
-for SBo in `cat sbopkg.lst`; do
-    if ! test -e /var/log/packages/$P-*; then
+if [ -x /usr/sbin/sbopkg ]; then
+    mkdir -p /tmp/SBo;
+    sbopkg -r;
+else
+    echo "sbopkg is not installed."
+    echo "You have to build SBo packages in sbopkg.lst by yourself."
+fi
+
+for PRGNAM in `cat sbopkg.lst`; do
+    if ! test -e /var/log/packages/$PRGNAM-*; then
         if [ -x /usr/sbin/sbopkg ]; then
-            sbopkg -r;
-            mkdir -p /tmp/SBo;
             sbopkg -B -k -i $SBo;
-        else
-            echo "sbopkg is not installed."
-            echo "You have to build SBo packages in sbopkg.lst by yourself."
-            echo "Build process stopped here."
-            failed
         fi
+    else
+        failed
     fi
 done
 
