@@ -195,7 +195,7 @@ else
 fi
 
 for PRGNAM in `cat sbopkg.lst`; do
-    if ! test -e /var/log/packages/$PRGNAM-*; then
+    if ! ls /var/log/packages/$PRGNAM-* 1>/dev/null 2>&1; then
         if [ -x /usr/sbin/sbopkg ]; then
             sbopkg -B -k -i $PRGNAM;
         else
