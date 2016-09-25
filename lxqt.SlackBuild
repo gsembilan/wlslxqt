@@ -30,6 +30,9 @@ if [ -x /usr/sbin/sbopkg ]; then
         mkdir -p /tmp/SBo;
         sbopkg -B -k -i $SBo;
     done
+else
+    echo "sbopkg is not installed."
+    failed
 fi
 
 CWD=$(pwd);
