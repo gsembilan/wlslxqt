@@ -2,6 +2,7 @@
 muParser
 libconfig
 compton
+compton-conf
 libstatgrab
 lxmenu-data
 libfm-extra
@@ -54,7 +55,3 @@ kglobalaccel
 libkscreen2
 kwindowsystem
 kwin
-
-## WLSGNOME
-system-tools-backends
-liboobs

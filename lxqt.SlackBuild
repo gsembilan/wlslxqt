@@ -24,11 +24,13 @@
 # YOUR DATA IS DESTROYED, YOUR HOUSE BURNS DOWN OR YOUR DOG RUNS OFF.
 
 # SBo packages dependency
-sbopkg -r;
-for SBo in `cat sbopkg.lst`; do
-    mkdir -p /tmp/SBo;
-    sbopkg -B -k -i $SBo;
-done
+if [ -x /usr/sbin/sbopkg ]; then
+    sbopkg -r;
+    for SBo in `cat sbopkg.lst`; do
+        mkdir -p /tmp/SBo;
+        sbopkg -B -k -i $SBo;
+    done
+fi
 
 CWD=$(pwd);
 . ./common;

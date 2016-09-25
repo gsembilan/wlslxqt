@@ -1,6 +1,7 @@
 muParser
 libconfig
 compton
+compton-conf
 libstatgrab
 lxmenu-data
 libfm-extra
