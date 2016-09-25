@@ -1,5 +1,5 @@
 ## SBo
-libxkbcommon
+libconfig
 libstatgrab
 lxmenu-data
 libfm-extra
@@ -9,6 +9,7 @@ libfm
 openbox
 
 ## ALIEN KDE5
+libxkbcommon
 qt5
 kwindowsystem
 solid

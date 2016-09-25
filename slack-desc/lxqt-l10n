@@ -5,15 +5,15 @@
 # make exactly 11 lines for the formatting to be correct.  It's also
 # customary to leave one space after the ':'.
 
-       |-----handy-ruler------------------------------------------------------|
-compton: compton
-compton:
-compton: A compositor for X11.
-compton:
-compton: URL: https://github.com/chjj/compton
-compton:
-compton:
-compton:
-compton:
-compton:
-compton:
+         |-----handy-ruler------------------------------------------------------|
+lxqt-l10n: lxqt-l10n
+lxqt-l10n:
+lxqt-l10n: LXQt internationalization support.
+lxqt-l10n:
+lxqt-l10n: URL: http://lxqt.org/
+lxqt-l10n:
+lxqt-l10n:
+lxqt-l10n:
+lxqt-l10n:
+lxqt-l10n:
+lxqt-l10n:
