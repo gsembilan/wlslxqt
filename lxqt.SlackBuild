@@ -23,6 +23,13 @@
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. FURTHERMORE I AM NOT LIABLE IF
 # YOUR DATA IS DESTROYED, YOUR HOUSE BURNS DOWN OR YOUR DOG RUNS OFF.
 
+# SBo packages dependency
+sbopkg -r;
+for SBo in `cat sbopkg.lst`; do
+    mkdir -p /tmp/SBo;
+    sbopkg -B -k -i $SBo;
+done
+
 CWD=$(pwd);
 . ./common;
 
@@ -34,207 +41,162 @@ failed()
   exit 1
 }
 
-for L in `cat ./list | sed '/#/d'`; do
-  PRGNAM="$L";
-  if [ "$PRGNAM" = "libfm-extra" ]; then
-    SRCNAM="libfm"
-  else
-    SRCNAM="$L"
-  fi
-  
-  if cat $CWD/CHECKSUMS | grep "$SRCNAM" >/dev/null; then
-    SHA256=$(cat $CWD/CHECKSUMS | grep "$SRCNAM" | grep "tar.xz" | grep SHA256 | awk '{print $4}')
-    VERSION=$(cat $CWD/CHECKSUMS | grep "$SRCNAM" | grep "tar.xz" | grep SHA256 | awk '{print $2}' | rev | cut -d - -f 1 | cut -d . -f 3- | rev)
-    REPO_URL="https://downloads.lxqt.org/lxqt"
-  elif cat $CWD/DEPS_CHECKSUMS | grep "$SRCNAM" >/dev/null; then
-    SHA256=$(cat $CWD/DEPS_CHECKSUMS | grep "$SRCNAM" | awk '{print $4}')
-    VERSION=$(cat $CWD/DEPS_CHECKSUMS | grep "$SRCNAM" | awk '{print $2}' | rev | cut -d - -f 1 | cut -d . -f 3- | rev)
-    REPO_URL="https://github.com/lxde/$SRCNAM/releases/download"
-  else
-    failed
-  fi
-  
-  if [ -r ./build/$PRGNAM ]; then
-    BUILD=$(cat ./build/$PRGNAM);
-  else
-    BUILD="1"
-  fi
-  
-  PKG=$WRK/package-$PRGNAM
+lxqt_build() {
+    PKG=$WRK/package-$PRGNAM
+    OUTPUT=${OUTPUT:-/home/ftp/pkg/lxqt/$ARCH}
+    VERSION=`cat $CWD/version/$PRGNAM`
 
-  if [ -z "$ARCH" ]; then
-    case "$( uname -m )" in
-      i?86) ARCH=i486 ;;
-      arm*) ARCH=arm ;;
-	*) ARCH=$( uname -m ) ;;
-    esac
-  fi;
+    if [ -r ./build/$PRGNAM ]; then
+        BUILD=`cat ./build/$PRGNAM`;
+    else
+        BUILD="1"
+    fi
 
-  if [ "$ARCH" = "i486" ]; then
-    SLKCFLAGS="-O2 -pipe -march=i486 -mtune=i686 -pthread"
-    LIBDIRSUFFIX=""
-  elif [ "$ARCH" = "i686" ]; then
-    SLKCFLAGS="-O2 -pipe -march=i686 -mtune=i686 -pthread"
-    LIBDIRSUFFIX=""
-  elif [ "$ARCH" = "x86_64" ]; then
-    SLKCFLAGS="-O2 -m64 -pipe -fPIC -pthread"
-    LIBDIRSUFFIX="64"
-  else
-    SLKCFLAGS="-O2 -pthread"
-    LIBDIRSUFFIX=""
-  fi;
+    echo "#######################################################################"
+    echo "#"
+    echo "# Building package: $PRGNAM-$VERSION-$ARCH-$BUILD$TAG.txz "
+    echo "#"
+    echo "#######################################################################"
 
-  echo "#######################################################################"
-  echo "#"
-  echo "# Building package: $PRGNAM-$VERSION-$ARCH-$BUILD$TAG.txz "
-  echo "#"
-  echo "#######################################################################"
+    if [ ! -e $CWD/src/$PRGNAM-$VERSION.tar.xz ]; then
+        cd $CWD/src
+        rm -f $PRGNAM-$VERSION.tar.xz*
+        curl -#OLJ -C - "$REPO_URL/$PRGNAM/$VERSION/$PRGNAM-$VERSION.tar.xz" || failed
+    fi
 
-  if [ ! -e $CWD/src/$SRCNAM-$VERSION.tar.xz ]; then
-    ( cd $CWD/src;
-      rm -f $SRCNAM-$VERSION.tar.*
-      curl -#OLJ -C - $REPO_URL/$VERSION/$SRCNAM-$VERSION.tar.xz || failed
-    )
-  fi
-  
-  if [ -e $CWD/src/$SRCNAM-$VERSION.tar.xz ]; then
-    SHA256=`cat $CWD/CHECKSUMS | grep ".tar.xz" | grep "$SRNAM" | grep SHA256`
-    ( cd $CWD/src;
-      STATUS="$(echo '$SHA256') | sha256sum -c | awk '{print $2}';"
-      if [ ! "$STATUS" = "OK" ]; then
-        failed
-      fi;
-    )
-  fi
-  
-  rm -rf $PKG;
-  mkdir -p $WRK $PKG $OUTPUT;
-  cd $WRK;
-  rm -rf $SRCNAM-$VERSION;
-  tar xvf $CWD/src/$SRCNAM-$VERSION.tar.xz || failed;
-  cd $SRCNAM-$VERSION;
+    rm -rf $PKG;
+    mkdir -p $WRK $PKG $OUTPUT;
+    cd $WRK;
+    rm -rf $PRGNAM-$VERSION;
+    tar xvf $CWD/src/$PRGNAM-$VERSION.tar.xz || failed;
+    cd $PRGNAM-$VERSION;
 
-  if [ -f $CWD/patches/$L ]; then
-    cat $CWD/patches/$L | patch -p1;
-  fi;
+    if [ -f $CWD/patches/$PRGNAM ]; then
+        cat $CWD/patches/$PRGNAM | patch -p1 || failed;
+    fi;
 
-  chown -R root:root .;
-  find . \
-  \( -perm 777 -o -perm 775 -o -perm 711 -o -perm 555 -o -perm 511 \) \
-  -exec chmod 755 {} \; -o \
-  \( -perm 666 -o -perm 664 -o -perm 600 -o -perm 444 -o -perm 440 -o -perm 400 \) \
-  -exec chmod 644 {} \;
+    chown -R root:root .;
+    find . \
+    \( -perm 777 -o -perm 775 -o -perm 711 -o -perm 555 -o -perm 511 \) \
+    -exec chmod 755 {} \; -o \
+    \( -perm 666 -o -perm 664 -o -perm 600 -o -perm 444 -o -perm 440 -o -perm 400 \) \
+    -exec chmod 644 {} \;
 
-  if [ -f $CWD/options/$L ]; then
+    if [ -f $CWD/options/$PRGNAM ]; then
+        unset OPT;
+        . $CWD/options/$PRGNAM;
+    fi;
+
+    if [ -f ./Makefile ]; then
+        make $NUMJOBS || failed;
+        make install DESTDIR=$PKG || failed;
+    elif [ -f ./CMakeLists.txt ]; then
+        mkdir -p build;
+        cd build;
+        cmake .. \
+        -DCMAKE_C_FLAGS:STRING="$SLKCFLAGS" \
+        -DCMAKE_CXX_FLAGS:STRING="$SLKCFLAGS" \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX:PATH=/usr \
+        -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+        $OPT \
+        || failed
+
+        make $NUMJOBS || failed;
+        make install DESTDIR=$PKG || failed;
+        cd -;
+    elif [ -f ./configure ]; then
+        CFLAGS="$SLKCFLAGS" \
+        CXXFLAGS="$SLKCFLAGS" \
+        ./configure \
+        --build=$ARCH-slackware-linux --host=$ARCH-slackware-linux \
+        --program-prefix= --program-suffix= \
+        --prefix=/usr --exec-prefix=/usr \
+        --bindir=/usr/bin --sbindir=/usr/sbin \
+        --libdir=/usr/lib$LIBDIRSUFFIX --includedir=/usr/include \
+        --mandir=/usr/man --infodir=/usr/info \
+        --sysconfdir=/etc --docdir=/usr/doc/$PRGNAM-$VERSION \
+        --localstatedir=/var --sharedstatedir=/var/lib \
+        $OPT \
+        || failed
+
+        make $NUMJOBS || failed;
+        make install DESTDIR=$PKG || failed;
+    elif [ -f ./autogen.sh ]; then
+        ./autogen.sh || failed
+
+        CFLAGS="$SLKCFLAGS" \
+        CXXFLAGS="$SLKCFLAGS" \
+        ./configure \
+        --build=$ARCH-slackware-linux --host=$ARCH-slackware-linux \
+        --program-prefix= --program-suffix= \
+        --prefix=/usr --exec-prefix=/usr \
+        --bindir=/usr/bin --sbindir=/usr/sbin \
+        --libdir=/usr/lib$LIBDIRSUFFIX --includedir=/usr/include \
+        --mandir=/usr/man --infodir=/usr/info \
+        --sysconfdir=/etc --docdir=/usr/doc/$PRGNAM-$VERSION \
+        --localstatedir=/var --sharedstatedir=/var/lib \
+        $OPT \
+        || failed
+
+        make $NUMJOBS || failed;
+        make install DESTDIR=$PKG || failed;
+    fi;
+
+    find $PKG | xargs file | grep -e "executable" -e "shared object" | grep ELF \
+        | cut -f 1 -d : | xargs strip --strip-unneeded 2> /dev/null || true;
+
+    if [ -d $PKG/usr/share/man ]; then
+        mv $PKG/usr/share/man $PKG/usr/;
+    fi;
+    find $PKG/usr/man -type f -exec gzip -9 {} \;
+    for i in $( find $PKG/usr/man -type l ) ; do
+        ln -s $( readlink $i ).gz $i.gz ; rm $i ;
+    done;
+
+    # XDG_DIR = /etc/lxqt/xdg
+    if [ "$PRGNAM" = "lxqt-session" ]; then
+        mkdir -p $PKG/etc/X11/xinit/;
+        cat $CWD/xinitrc.lxqt > $PKG/etc/X11/xinit/xinitrc.lxqt;
+        chmod 755 $PKG/etc/X11/xinit/xinitrc.lxqt;
+    fi;
+
+    mkdir -p $PKG/usr/doc/$PRGNAM-$VERSION;
+    for D in $DOCS; do
+        if [ -f $D ]; then
+        cp -a $D $PKG/usr/doc/$PRGNAM-$VERSION;
+        fi ;
+    done;
+
+    mkdir -p $PKG/install;
+    cat $CWD/slack-desc/$PRGNAM > $PKG/install/slack-desc;
+    if [ -f $CWD/slack-required/$PRGNAM ]; then
+        cat $CWD/slack-required/$PRGNAM > $PKG/install/slack-required;
+    fi;
+    if [ -f $CWD/doinst/$PRGNAM ]; then
+        cat $CWD/doinst/$PRGNAM > $PKG/install/doinst.sh;
+    fi;
+
+    cd $PKG;
+    /sbin/makepkg -p -l y -c n $OUTPUT/$PRGNAM-$VERSION-$ARCH-$BUILD$TAG.txz || failed;
+    #   ( cd $OUTPUT;
+    #     /bin/md5sum $PRGNAM-$VERSION-$ARCH-$BUILD$TAG.txz > $PRGNAM-$VERSION-$ARCH-$BUILD$TAG.txz.md5;
+    #   );
+    /sbin/upgradepkg --install-new --reinstall $OUTPUT/$PRGNAM-$VERSION-$ARCH-$BUILD$TAG.txz || failed;
+
+    echo "Cleaning up build directory";
+    cd $WRK; rm -rf $PRGNAM-$VERSION $PKG;
     unset OPT;
-    . $CWD/options/$L;
-  fi;
+    sleep 1;
+    echo;
+    cd $CWD;
+}
 
-  if [ -f ./Makefile ]; then
-      make || failed;
-      make install DESTDIR=$PKG || failed;
-  elif [ -f ./CMakeLists.txt ]; then
-    mkdir -p build;
-    cd build;
-      cmake .. \
-      -DCMAKE_C_FLAGS:STRING="$SLKCFLAGS" \
-      -DCMAKE_CXX_FLAGS:STRING="$SLKCFLAGS" \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_INSTALL_PREFIX:PATH=/usr \
-      -DLIB_SUFFIX=${LIBDIRSUFFIX} \
-      $OPT \
-      || failed
-
-      make || failed;
-      make install DESTDIR=$PKG || failed;
-    cd -;
-  elif [ -f ./configure ]; then
-    CFLAGS="$SLKCFLAGS" \
-    CXXFLAGS="$SLKCFLAGS" \
-    ./configure \
-      --build=$ARCH-slackware-linux --host=$ARCH-slackware-linux \
-      --program-prefix= --program-suffix= \
-      --prefix=/usr --exec-prefix=/usr \
-      --bindir=/usr/bin --sbindir=/usr/sbin \
-      --libdir=/usr/lib$LIBDIRSUFFIX --includedir=/usr/include \
-      --mandir=/usr/man --infodir=/usr/info \
-      --sysconfdir=/etc --docdir=/usr/doc/$PRGNAM-$VERSION \
-      --localstatedir=/var --sharedstatedir=/var/lib \
-      $OPT \
-      || failed
-
-      make || failed;
-      make install DESTDIR=$PKG || failed;
-  elif [ -f ./autogen.sh ]; then
-    ./autogen.sh || failed
-
-    CFLAGS="$SLKCFLAGS" \
-    CXXFLAGS="$SLKCFLAGS" \
-    ./configure \
-      --build=$ARCH-slackware-linux --host=$ARCH-slackware-linux \
-      --program-prefix= --program-suffix= \
-      --prefix=/usr --exec-prefix=/usr \
-      --bindir=/usr/bin --sbindir=/usr/sbin \
-      --libdir=/usr/lib$LIBDIRSUFFIX --includedir=/usr/include \
-      --mandir=/usr/man --infodir=/usr/info \
-      --sysconfdir=/etc --docdir=/usr/doc/$PRGNAM-$VERSION \
-      --localstatedir=/var --sharedstatedir=/var/lib \
-      $OPT \
-      || failed
-
-      make || failed;
-      make install DESTDIR=$PKG || failed;
-  fi;
-
-  find $PKG | xargs file | grep -e "executable" -e "shared object" | grep ELF \
-    | cut -f 1 -d : | xargs strip --strip-unneeded 2> /dev/null || true;
-
-  if [ -d $PKG/usr/share/man ]; then
-    mv $PKG/usr/share/man $PKG/usr/;
-  fi;
-  find $PKG/usr/man -type f -exec gzip -9 {} \;
-  for i in $( find $PKG/usr/man -type l ) ; do
-    ln -s $( readlink $i ).gz $i.gz ; rm $i ;
-  done;
-
-  # XDG_DIR = /etc/lxqt/xdg
-  if [ "$PRGNAM" = "lxqt-session" ]; then
-    #mkdir -p $PKG/etc/profile.d/;
-    #cat $CWD/profile.d/lxqt.sh > $PKG/etc/profile.d/lxqt.sh;
-    #cat $CWD/profile.d/lxqt.csh > $PKG/etc/profile.d/lxqt.csh;
-    #chmod 755 $PKG/profile.d/lxqt.*;
-    mkdir -p $PKG/etc/X11/xinit/;
-    cat $CWD/xinitrc.lxqt > $PKG/etc/X11/xinit/xinitrc.lxqt;
-    chmod 755 $PKG/etc/X11/xinit/xinitrc.lxqt;
-  fi;
-
-  mkdir -p $PKG/usr/doc/$PRGNAM-$VERSION;
-  for D in $DOCS; do
-    if [ -f $D ]; then
-      cp -a $D $PKG/usr/doc/$PRGNAM-$VERSION;
-    fi ;
-  done;
-
-  mkdir -p $PKG/install;
-  cat $CWD/slack-desc/$L > $PKG/install/slack-desc;
-  if [ -f $CWD/slack-required/$L ]; then
-    cat $CWD/slack-required/$L > $PKG/install/slack-required;
-  fi;
-  if [ -f $CWD/doinst/$L ]; then
-    cat $CWD/doinst/$L > $PKG/install/doinst.sh;
-  fi;
-
-  cd $PKG;
-  /sbin/makepkg -p -l y -c n $OUTPUT/$PRGNAM-$VERSION-$ARCH-$BUILD$TAG.txz || failed;
-#   ( cd $OUTPUT;
-#     /bin/md5sum $PRGNAM-$VERSION-$ARCH-$BUILD$TAG.txz > $PRGNAM-$VERSION-$ARCH-$BUILD$TAG.txz.md5;
-#   );
-  /sbin/upgradepkg --install-new --reinstall $OUTPUT/$PRGNAM-$VERSION-$ARCH-$BUILD$TAG.txz || failed;
-
-  echo "Cleaning up build directory";
-  cd $WRK; rm -rf $SRCNAM-$VERSION $PKG;
-  unset OPT;
-  sleep 2;
-  echo;
-  cd $CWD;
-done;
+if [ ! -z "$1" ]; then
+    PRGNAM="$1";
+    lxqt_build;
+else
+    for PRGNAM in `cat ./lxqt.lst | sed '/#/d'`; do
+        lxqt_build;
+    done;
+fi
