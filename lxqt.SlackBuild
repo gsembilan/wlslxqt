@@ -23,18 +23,6 @@
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. FURTHERMORE I AM NOT LIABLE IF
 # YOUR DATA IS DESTROYED, YOUR HOUSE BURNS DOWN OR YOUR DOG RUNS OFF.
 
-# SBo packages dependency
-if [ -x /usr/sbin/sbopkg ]; then
-    sbopkg -r;
-    for SBo in `cat sbopkg.lst`; do
-        mkdir -p /tmp/SBo;
-        sbopkg -B -k -i $SBo;
-    done
-else
-    echo "sbopkg is not installed."
-    failed
-fi
-
 CWD=$(pwd);
 . ./common;
 
@@ -196,6 +184,22 @@ lxqt_build() {
     echo;
     cd $CWD;
 }
+
+# SBo packages dependency
+for SBo in `cat sbopkg.lst`; do
+    if ! test -e /var/log/packages/$P-*; then
+        if [ -x /usr/sbin/sbopkg ]; then
+            sbopkg -r;
+            mkdir -p /tmp/SBo;
+            sbopkg -B -k -i $SBo;
+        else
+            echo "sbopkg is not installed."
+            echo "You have to build SBo packages in sbopkg.lst by yourself."
+            echo "Build process stopped here."
+            failed
+        fi
+    fi
+done
 
 if [ ! -z "$1" ]; then
     PRGNAM="$1";
