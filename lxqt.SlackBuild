@@ -198,9 +198,9 @@ for PRGNAM in `cat sbopkg.lst`; do
     if ! test -e /var/log/packages/$PRGNAM-*; then
         if [ -x /usr/sbin/sbopkg ]; then
             sbopkg -B -k -i $PRGNAM;
+        else
+            failed
         fi
-    else
-        failed
     fi
 done
 
