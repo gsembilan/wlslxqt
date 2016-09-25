@@ -1,21 +1,59 @@
 ## SBo
+muParser
 libconfig
+compton
 libstatgrab
 lxmenu-data
 libfm-extra
 menu-cache
 libfm
-# IF NOt USING KWIN
+# If not using kwin
 openbox
 
 ## ALIEN KDE5
 libxkbcommon
 qt5
-kwindowsystem
 solid
 libdbusmenu-qt5
 polkit-qt5
+# If using kwin
+kpackage
+kservice
+kauth
+kconfigwidgets
+kwidgetsaddons
+kscreenlocker
+ki18n
+knotifications
+kcodecs
+kconfig
+kactivities
+kinit
+wayland
+kwayland
+kcrash
+kcoreaddons
+kiconthemes
+kdeclarative
+kxmlgui
+kio
+kjobwidgets
+kcompletion
+karchive
+kguiaddons
+kdbusaddons
+kidletime
+kitemviews
+ktextwidgets
+attica-framework
+phonon
+phonon-gstreamer
+plasma-framework
+sonnet
+kglobalaccel
 libkscreen2
+kwindowsystem
+kwin
 
 ## WLSGNOME
 system-tools-backends
